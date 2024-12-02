@@ -1,76 +1,97 @@
+// pipeline {
+//     agent any
+
+//     environment {
+//         DOCKER_IMAGE = 'flask-app'  
+//     }
+
+//     stages {
+//         stage('Clone Repository') {
+//             steps {
+//                 echo 'Cloning the repository...'
+//                 git branch: 'main', url: 'https://github.com/YashKhunteta/FakeNews'
+//             }
+//         }
+
+//         stage('Build Docker Image') {
+//             steps {
+//                 echo 'Building Docker image...'
+//                 script {
+//                     bat 'docker build -t $DOCKER_IMAGE .'
+//                 }
+//             }
+//         }
+
+//         stage('Run Container') {
+//             steps {
+//                 echo 'Running container for testing...'
+//                 script {
+//                     bat 'docker run -d -p 5000:5000 --name $CONTAINER_NAME $DOCKER_IMAGE'
+//                 }
+//             }
+//         }
+
+
+        
+//     }
+
+//     post {
+//         always {
+//             echo 'Pipeline execution completed.'
+//         }
+//         success {
+//             echo 'Pipeline executed successfully.'
+//         }
+//         failure {
+//             echo 'Pipeline failed.'
+//         }
+//     }
+// }
+
 pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'flask-app'  // Change this to your Docker image name
-        CONTAINER_NAME = 'magical_nash'
+        DOCKER_IMAGE_NAME = 'flask-app'
+        CONTAINER_PORT = '5000'
+        HOST_PORT = '5000'
     }
 
     stages {
-        stage('Clone Repository') {
+        stage('Checkout') {
             steps {
-                echo 'Cloning the repository...'
-                git branch: 'main', url: 'https://github.com/shruti180103/Fake-News-Detection'
+                // Clone the repository
+                git branch: 'main', url: 'https://github.com/YashKhunteta/FakeNews.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                echo 'Building Docker image...'
                 script {
-                    sh 'docker build -t $DOCKER_IMAGE .'
+                    echo 'Building Docker image...'
+                    // Build the Docker image
+                    bat 'docker build -t %DOCKER_IMAGE_NAME% .'
                 }
             }
         }
 
-        stage('Run Container') {
+        stage('Run Docker Container') {
             steps {
-                echo 'Running container for testing...'
                 script {
-                    sh 'docker run -d -p 5000:5000 --name $CONTAINER_NAME $DOCKER_IMAGE'
-                }
-            }
-        }
-
-
-        stage('Push to Docker Registry') {
-            when {
-                expression { return env.DOCKER_REGISTRY != '' }
-            }
-            steps {
-                echo 'Pushing Docker image to registry...'
-                script {
-                    sh """
-                    docker tag $DOCKER_IMAGE $DOCKER_REGISTRY/$DOCKER_IMAGE
-                    docker push $DOCKER_REGISTRY/$DOCKER_IMAGE
-                    """
-                }
-            }
-        }
-
-        stage('Clean Up') {
-            steps {
-                echo 'Cleaning up resources...'
-                script {
-                    sh """
-                    docker stop $CONTAINER_NAME || true
-                    docker rm $CONTAINER_NAME || true
-                    docker rmi $DOCKER_IMAGE || true
-                    """
+                    echo 'Running Docker container...'
+                    // Stop and remove any existing container using the same image
+                    bat 'docker ps -q --filter ancestor=%DOCKER_IMAGE_NAME% | for /f %i in ("delims=") do docker stop %i && docker rm %i'
+                    // Run the new Docker container
+                    bat 'docker run -d -p %HOST_PORT%:%CONTAINER_PORT% %DOCKER_IMAGE_NAME%'
                 }
             }
         }
     }
 
     post {
-        always {
-            echo 'Pipeline execution completed.'
-        }
         success {
-            echo 'Pipeline executed successfully.'
+            echo 'Pipeline succeeded!'
         }
-        failure {
-            echo 'Pipeline failed.'
-        }
+
     }
 }

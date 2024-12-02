@@ -4,6 +4,13 @@ FROM python:3.9-slim
 # Set the working directory in the container
 WORKDIR /app
 
+# Copy the project files into the container
+COPY model2.pkl /app/
+COPY tfidfvect2.pkl /app/
+COPY model.pkl /app/
+COPY tfidfvect.pkl /app/
+COPY . /app
+
 # Install system-level dependencies required by scikit-learn
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -12,13 +19,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libopenblas-dev \
     liblapack-dev && \
     rm -rf /var/lib/apt/lists/*
-
-# Copy the project files into the container
-COPY model2.pkl /app/
-COPY tfidfvect2.pkl /app/
-COPY model.pkl /app/
-COPY tfidfvect.pkl /app/
-COPY . .
 
 # Install dependencies one by one
 RUN pip install --no-cache-dir Flask==2.0.3  # Flask 2.x version for compatibility with newer features
@@ -34,6 +34,8 @@ RUN pip install --no-cache-dir pandas
 # Install nltk
 RUN pip install --no-cache-dir nltk==3.4.5  # Ensure nltk is installed
 
+RUN python -m nltk.downloader stopwords
+
 # Install Werkzeug 2.x (compatible with Flask 2.x)
 RUN pip install --no-cache-dir werkzeug==2.0.3
 
@@ -42,7 +44,7 @@ RUN pip install --no-cache-dir gunicorn==20.0.4
 RUN pip install --no-cache-dir joblib==0.14.1
 
 # Clean up unnecessary files to reduce image size
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+#RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Expose the port the app runs on
 EXPOSE 5000
